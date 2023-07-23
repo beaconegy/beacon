@@ -19,7 +19,7 @@
 # Triine Aavik <triine@avalah.ee>, 2022
 # Rivo Zängov <eraser@eraser.ee>, 2022
 # Eneli Õigus <enelioigus@gmail.com>, 2022
-# Jana Jaakson, 2022
+# JanaAvalah, 2022
 # Leaanika Randmets, 2022
 # Anna, 2023
 # 
@@ -30,7 +30,7 @@ msgstr ""
 "POT-Creation-Date: 2022-01-10 06:07+0000\n"
 "PO-Revision-Date: 2021-09-14 12:27+0000\n"
 "Last-Translator: Anna, 2023\n"
-"Language-Team: Estonian (https://www.transifex.com/odoo/teams/41243/et/)\n"
+"Language-Team: Estonian (https://app.transifex.com/odoo/teams/41243/et/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -650,14 +650,10 @@ msgstr "<b>Liigutage</b> seda nuppu veeru suuruse muutmiseks."
 #: model_terms:ir.ui.view,arch_db:website.view_edit_robots
 msgid ""
 "<br/><br/>\n"
-"                    Example of rule:<br/>\n"
-"                    <code class=\"ml-4\">Disallow: /web/login</code><br/>\n"
-"                    <code class=\"ml-4\">Allow: *</code>"
+"                    Example of rule:<br/>"
 msgstr ""
 "<br/><br/>\n"
-"                    Reegli erand:<br/>\n"
-"                    <code class=\"ml-4\">Ära luba: /web/login</code><br/>\n"
-"                    <code class=\"ml-4\">Luba: *</code>"
+"                    Reegli näide:<br/>"
 
 #. module: website
 #: model_terms:ir.ui.view,arch_db:website.s_carousel
@@ -839,6 +835,8 @@ msgid ""
 "<i class=\"fa fa-info-circle\"/> Edit the content below this line to adapt "
 "the default <strong>Page not found</strong> page."
 msgstr ""
+"<i class=\"fa fa-info-circle\"/> Muuda selle joone alust sisu, et kohandada "
+"vaikimisi<strong>Lehte ei leitud.</strong>lehte."
 
 #. module: website
 #: model_terms:ir.ui.view,arch_db:website.protected_403
@@ -6726,6 +6724,13 @@ msgstr "Mobiil"
 #. openerp-web
 #: code:addons/website/static/src/js/editor/snippets.options.js:0
 #, python-format
+msgid "Mobile Alignment"
+msgstr ""
+
+#. module: website
+#. openerp-web
+#: code:addons/website/static/src/js/editor/snippets.options.js:0
+#, python-format
 msgid "Mobile menu"
 msgstr "Mobiili menüü"
 
@@ -9801,6 +9806,13 @@ msgstr "See lehekülg avalikustatakse {{ date_formatted }}"
 
 #. module: website
 #. openerp-web
+#: code:addons/website/static/src/js/menu/translate.js:0
+#, python-format
+msgid "This translation is not editable."
+msgstr ""
+
+#. module: website
+#. openerp-web
 #: code:addons/website/static/src/js/menu/seo.js:0
 #, python-format
 msgid ""
@@ -10041,6 +10053,13 @@ msgstr "Siire"
 #, python-format
 msgid "Translate Attribute"
 msgstr "Tõlgi atribuut"
+
+#. module: website
+#. openerp-web
+#: code:addons/website/static/src/js/menu/translate.js:0
+#, python-format
+msgid "Translate header in the text. Menu is generated automatically."
+msgstr ""
 
 #. module: website
 #. openerp-web
@@ -10781,7 +10800,7 @@ msgstr "Me võtame teiega peatselt ühendust."
 #: code:addons/website/static/src/components/configurator/configurator.xml:0
 #, python-format
 msgid "We'll set you up and running in"
-msgstr ""
+msgstr "Veebilehe loomiseks on"
 
 #. module: website
 #: model_terms:ir.ui.view,arch_db:website.website_visitor_view_tree
@@ -10924,7 +10943,7 @@ msgstr "Veebilehe avaldatud mixin"
 #. module: website
 #: model:ir.model,name:website.model_website_searchable_mixin
 msgid "Website Searchable Mixin"
-msgstr ""
+msgstr "Veebilehe otsitav Mixin"
 
 #. module: website
 #. openerp-web
@@ -11241,6 +11260,13 @@ msgstr "Ei saa eemaldada välja, mida mudel nõuab. "
 #, python-format
 msgid "You can't remove the submit button of the form"
 msgstr "Vormi ära saatmise nuppu ei saa eemaldada."
+
+#. module: website
+#: code:addons/website/models/website.py:0
+#, python-format
+msgid ""
+"You cannot delete default website %s. Try to change its settings instead"
+msgstr ""
 
 #. module: website
 #: code:addons/website/controllers/backend.py:0

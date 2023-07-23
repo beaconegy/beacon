@@ -8,7 +8,7 @@
 # Muftiara Syuhada <muftiara.syuhada@gmail.com>, 2022
 # Andhitia Rama <andhitia.r@gmail.com>, 2022
 # Gradien Foundation <gradien.co@gmail.com>, 2022
-# oon arfiandwi <oon.arfiandwi@gmail.com>, 2022
+# oon arfiandwi (OonID) <oon.arfiandwi@gmail.com>, 2022
 # Muhammad Syarif <mhdsyarif.ms@gmail.com>, 2022
 # PAS IRVANUS <ipankbiz@gmail.com>, 2022
 # Edy Kend <edy@azmall.co.id>, 2022
@@ -35,7 +35,7 @@ msgstr ""
 "POT-Creation-Date: 2022-01-24 08:19+0000\n"
 "PO-Revision-Date: 2021-09-14 12:25+0000\n"
 "Last-Translator: Abe Manyo, 2023\n"
-"Language-Team: Indonesian (https://www.transifex.com/odoo/teams/41243/id/)\n"
+"Language-Team: Indonesian (https://app.transifex.com/odoo/teams/41243/id/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
@@ -379,6 +379,18 @@ msgid ""
 "</div>\n"
 "        "
 msgstr ""
+"<div>\n"
+"    Yth <t t-out=\"object.partner_id.name or 'customer'\">Brandon Freeman</t>,<br/>\n"
+"    Terima kasih untuk pertanyaan Anda.<br/>\n"
+"    Bila Anda memiliki pertanyaan apapun, mohon beritahu kami.\n"
+"    <br/><br/>\n"
+"    Terima kasih,\n"
+"    <t t-if=\"user.signature\">\n"
+"        <br/>\n"
+"        <t t-out=\"user.signature or ''\">--<br/>Mitchell Admin</t>\n"
+"    </t>\n"
+"</div>\n"
+"        "
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_project_kanban
@@ -488,7 +500,7 @@ msgstr ""
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.edit_project
 msgid "<span class=\"o_stat_text\">Gross Margin</span>"
-msgstr ""
+msgstr "<span class=\"o_stat_text\">Margin Kotor</span>"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_form2
@@ -699,6 +711,8 @@ msgid ""
 "Add columns to organize your tasks into <b>stages</b> <i>e.g. New - In "
 "Progress - Done</i>."
 msgstr ""
+"Tambahkan kolom-kolom untuk mengatur tugas-tugas Anda menjadi <b>tahap-"
+"tahap</b> <i>contohnya Baru - Sedang Berlangsung - Selesai</i>."
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_share_wizard_view_form
@@ -720,7 +734,7 @@ msgstr ""
 #. module: project
 #: model:res.groups,name:project.group_project_manager
 msgid "Administrator"
-msgstr ""
+msgstr "Administrator"
 
 #. module: project
 #. openerp-web
@@ -947,7 +961,7 @@ msgstr "Menetapkan tanggal"
 #: model:ir.model.fields,field_description:project.field_project_task_burndown_chart_report__date_assign
 #: model:ir.model.fields,field_description:project.field_report_project_task_user__date_assign
 msgid "Assignment Date"
-msgstr ""
+msgstr "Tanggal Tugas"
 
 #. module: project
 #: model:ir.model.fields.selection,name:project.selection__project_project__last_update_status__at_risk
@@ -1318,7 +1332,7 @@ msgstr ""
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_task__create_date
 msgid "Created On"
-msgstr ""
+msgstr "Dibuat Pada"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_collaborator__create_uid
@@ -1426,7 +1440,7 @@ msgstr "Customer Portal URL"
 #: model:ir.model.fields,field_description:project.field_res_config_settings__group_project_rating
 #: model:ir.ui.menu,name:project.rating_rating_menu_project
 msgid "Customer Ratings"
-msgstr ""
+msgstr "Rating Pelanggan"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__rating_status
@@ -1587,6 +1601,20 @@ msgid ""
 "\n"
 "In any case, an internal user with no project access rights can still access a task, provided that they are given the corresponding URL (and that they are part of the followers if the project is private)."
 msgstr ""
+"Orang yang dapat melihat project ini dan tugasnya.\n"
+"\n"
+"- User internal yang diundang: saat mengikuti project, user internal mendapatkan akses ke semua task. Jika tidak, mereka hanya mendapatkan akses ke tugas-tugas yang mereka ikuti.\n"
+" User dengan hak akses project > administrator masih dapat mengakses project ini dan tugasnya, bahkan bila mereka tidak termasuk sebagai follower.\n"
+"\n"
+"- Semua user internal: semua user internal dapat mengakses project dan semua tugasnya.\n"
+"\n"
+"- User portal yang diundang dan semua user internal: semua user internal dapat mengakses project dan semua tugasnya.\n"
+"Saat mengikuti project, user portal akan dapat mengakses semua tugasnya. Jika tidak, mereka hanya mendapatkan akses ke tugas-tugas yang mereka ikuti.\n"
+"\n"
+"Saat project dibagikan dalam format read-only, user portal akan dialihkan ke portal mereka. Mereka dapat melihat tugasnya, tapi tidak dapat mengedit.\n"
+"Saat project dibagikan dalam format bisa diedit, user portal akan dialihkan ke tampilan daftar dan kanban dari tugas mereka. Mereka dapat memodifikasi field-field terpilih tertentu pada tugas mereka.\n"
+"\n"
+"Dalam kasus apapun juga, user internal tanpa hak akses project masih dapat mengakses tugas, asalkan mereka diberikan URL yang sesuai (dan mereka merupakan bagian dari follower bila project bersifat privat."
 
 #. module: project
 #: model:ir.actions.server,name:project.unlink_project_action
@@ -2028,7 +2056,7 @@ msgstr "Label Kanban Abu-Abu"
 #: code:addons/project/models/project.py:0
 #, python-format
 msgid "Gross Margin"
-msgstr ""
+msgstr "Margin Kotor"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.project_collaborator_view_search
@@ -2095,12 +2123,6 @@ msgstr ""
 #: model_terms:ir.ui.view,arch_db:project.project_update_default_description
 msgid "How’s this project going?"
 msgstr ""
-
-#. module: project
-#: code:addons/project/models/project.py:0
-#, python-format
-msgid "I take it"
-msgstr "Saya mengambil"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_collaborator__id
@@ -2550,17 +2572,17 @@ msgstr "Nanti"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban
 msgid "Latest Rating: Dissatisfied"
-msgstr ""
+msgstr "Rating Terakhir: Tidak puas"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban
 msgid "Latest Rating: Okay"
-msgstr ""
+msgstr "Rating Terakhir: Okay"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.view_task_kanban
 msgid "Latest Rating: Satisfied"
-msgstr ""
+msgstr "Rating Terakhir: Puas"
 
 #. module: project
 #. openerp-web
@@ -2723,7 +2745,7 @@ msgstr ""
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__milestone_count
 msgid "Milestone Count"
-msgstr ""
+msgstr "Jumlah Milestone"
 
 #. module: project
 #. openerp-web
@@ -2731,7 +2753,7 @@ msgstr ""
 #: model:ir.actions.act_window,name:project.project_milestone_all
 #, python-format
 msgid "Milestones"
-msgstr ""
+msgstr "Milestone"
 
 #. module: project
 #. openerp-web
@@ -3373,7 +3395,7 @@ msgstr "Pribadi"
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.res_config_settings_view_form
 msgid "Profitability"
-msgstr ""
+msgstr "Profitabilitas"
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_update__progress
@@ -3459,7 +3481,7 @@ msgstr "Manajer Proyek"
 #. module: project
 #: model:ir.model,name:project.model_project_milestone
 msgid "Project Milestone"
-msgstr ""
+msgstr "Milestone Project"
 
 #. module: project
 #: model_terms:ir.ui.view,arch_db:project.edit_project
@@ -3520,7 +3542,7 @@ msgstr "Kegiatan-kegiatan proyek"
 #: model:ir.model,name:project.model_project_update
 #: model_terms:ir.ui.view,arch_db:project.project_update_view_form
 msgid "Project Update"
-msgstr ""
+msgstr "Update Project"
 
 #. module: project
 #: model:ir.actions.act_window,name:project.project_update_all_action
@@ -3684,7 +3706,7 @@ msgstr ""
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__rating_ids
 msgid "Ratings"
-msgstr ""
+msgstr "Rating"
 
 #. module: project
 #: code:addons/project/models/project.py:0
@@ -3930,7 +3952,7 @@ msgstr "Penelitian"
 #. module: project
 #: model:project.project,name:project.project_project_2
 msgid "Research & Development"
-msgstr ""
+msgstr "Penelitian & Pengembangan"
 
 #. module: project
 #. openerp-web
@@ -4012,7 +4034,7 @@ msgstr ""
 #: code:addons/project/controllers/portal.py:0
 #, python-format
 msgid "Search in All"
-msgstr ""
+msgstr "Cari di Semua"
 
 #. module: project
 #: code:addons/project/controllers/portal.py:0
@@ -4341,7 +4363,7 @@ msgstr ""
 #. module: project
 #: model:ir.model.constraint,message:project.constraint_project_tags_name_uniq
 msgid "Tag name already exists!"
-msgstr ""
+msgstr "Nama tag sudah ada!"
 
 #. module: project
 #: model:ir.actions.act_window,name:project.project_tags_action
@@ -4434,7 +4456,7 @@ msgstr "Tugas siap"
 #. module: project
 #: model:ir.model,name:project.model_project_task_recurrence
 msgid "Task Recurrence"
-msgstr ""
+msgstr "Pengulangan Task"
 
 #. module: project
 #: model:ir.model,name:project.model_project_task_type
@@ -4966,7 +4988,7 @@ msgstr ""
 #: code:addons/project/static/src/js/tours/project.js:0
 #, python-format
 msgid "Use <b>activities</b> to organize your daily work."
-msgstr ""
+msgstr "Gunakan <b>aktivitas</b> untuk mengatur tugas sehari-hari Anda."
 
 #. module: project
 #: model:ir.model.fields,field_description:project.field_project_project__alias_enabled
