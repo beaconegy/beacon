@@ -1,5 +1,5 @@
 import { isSelectionFormat } from '../../src/utils/utils.js';
-import { BasicEditor, testEditor, setTestSelection, Direction, unformat } from '../utils.js';
+import { BasicEditor, testEditor, setTestSelection, Direction, unformat, insertText } from '../utils.js';
 
 const bold = async editor => {
     await editor.execCommand('bold');
@@ -158,6 +158,13 @@ describe('Format', () => {
                 </p>`),
             });
         });
+        it('should not format non-editable text (bold)', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>[a</p><p contenteditable="false">b</p><p>c]</p>',
+                stepFunction: bold,
+                contentAfter: `<p>${strong('[a')}</p><p contenteditable="false">b</p><p>${strong('c]')}</p>`,
+            });
+        });
 
         describe('inside container or inline with class already bold', () => {
             it('should force the font-weight to normal with an inline with class', async () => {
@@ -293,6 +300,13 @@ describe('Format', () => {
                 contentAfter: `<p>${em(`ab[]cd`)}</p>`,
             });
         });
+        it('should not format non-editable text (italic)', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>[a</p><p contenteditable="false">b</p><p>c]</p>',
+                stepFunction: italic,
+                contentAfter: `<p>${em('[a')}</p><p contenteditable="false">b</p><p>${em('c]')}</p>`,
+            });
+        });
     });
     describe('underline', () => {
         it('should make a few characters underline', async () => {
@@ -372,6 +386,13 @@ describe('Format', () => {
                 stepFunction: underline,
                 contentAfterEdit: `<p>${u(`ab`)}${span(`[]\u200B`, 'first')}${u(`cd`)}</p>`,
                 contentAfter: `<p>${u(`ab[]cd`)}</p>`,
+            });
+        });
+        it('should not format non-editable text (underline)', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>[a</p><p contenteditable="false">b</p><p>c]</p>',
+                stepFunction: underline,
+                contentAfter: `<p>${u('[a')}</p><p contenteditable="false">b</p><p>${u('c]')}</p>`,
             });
         });
     });
@@ -516,6 +537,34 @@ describe('Format', () => {
                 contentBefore: `<p style="text-decoration: line-through;">a[b]c</p>`,
                 stepFunction: strikeThrough,
                 contentAfter: `<p style="text-decoration: line-through;">a[b]c</p>`,
+            });
+        });
+        it('should insert new character inside strikethrough at first position', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: `<p>d[a${s('bc]<br><br>')}</p>`,
+                stepFunction: async editor => {
+                    insertText(editor, 'A');
+                },
+                contentAfter: `<p>dA[]${s(`<br><br>`)}</p>`,
+            });
+            await testEditor(BasicEditor, {
+                contentBefore: `<p>[a${s('bc]<br><br>')}</p>`,
+                stepFunction: async editor => {
+                    insertText(editor, 'A');
+                },
+                contentAfter: `<p>A[]${s(`<br><br>`)}</p>`,
+                // Note: In the browser, the actual result is the following:
+                // contentAfter: `<p>${s(`A[]<br><br>`)}</p>`,
+                // It is arguable which version is better than the other but in
+                // any case this is a trade-off because it matches the native
+                // behavior of contentEditable in that case.
+            });
+        });
+        it('should not format non-editable text (strikeThrough)', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>[a</p><p contenteditable="false">b</p><p>c]</p>',
+                stepFunction: strikeThrough,
+                contentAfter: `<p>${s('[a')}</p><p contenteditable="false">b</p><p>${s('c]')}</p>`,
             });
         });
     });
@@ -759,6 +808,17 @@ describe('Format', () => {
                 contentAfter: '<p>[abc]</p>',
             });
         });
+        it('should not format non-editable text (setFontSize)', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<p>a[b</p><p contenteditable="false">c</p><p>d]e</p>',
+                stepFunction: setFontSize('10px'),
+                contentAfter: unformat(`
+                    <p>a<span style="font-size: 10px;">[b</span></p>
+                    <p contenteditable="false">c</p>
+                    <p><span style="font-size: 10px;">d]</span>e</p>
+                `),
+            });
+        });
     });
 
     it('should add style to a span parent of an inline', async () => {
@@ -808,6 +868,13 @@ describe('Format', () => {
                 contentBefore: `<p>a[b]c</p>`,
                 stepFunction: switchDirection,
                 contentAfter: `<p dir="rtl">a[b]c</p>`,
+            });
+        });
+        it('should not switch direction of non-editable elements', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: `<p>[before</p><p contenteditable="false">noneditable</p><p>after]</p>`,
+                stepFunction: switchDirection,
+                contentAfter: `<p dir="rtl">[before</p><p contenteditable="false">noneditable</p><p dir="rtl">after]</p>`,
             });
         });
     });
@@ -864,6 +931,21 @@ describe('setTagName', () => {
                 contentAfter: `<ul><li>[abcd]</li></ul>`
             });
         });
+        it('should turn three table cells with heading 1 to table cells with paragraph', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><h1>[a</h1></td><td><h1>b</h1></td><td><h1>c]</h1></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'p'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><p>[]a</p></td><td><p>b</p></td><td><p>c</p></td></tr></tbody></table>',
+            });
+        });
+        it('should not set the tag of non-editable elements', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<h1>[before</h1><h1 contenteditable="false">noneditable</h1><h1>after]</h1>',
+                stepFunction: editor => editor.execCommand('setTag', 'p'),
+                contentAfter: '<p>[before</p><h1 contenteditable="false">noneditable</h1><p>after]</p>',
+            });
+        });
     });
     describe('to heading 1', () => {
         it('should turn a paragraph into a heading 1', async () => {
@@ -908,6 +990,14 @@ describe('setTagName', () => {
                 contentAfter: '<div><h1><span style="">[ab]</span></h1></div>',
             });
         });
+        it('should turn three table cells with paragraph to table cells with heading 1', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><p>[a</p></td><td><p>b</p></td><td><p>c]</p></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'h1'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><h1>[]a</h1></td><td><h1>b</h1></td><td><h1>c</h1></td></tr></tbody></table>',
+            });
+        });
     });
     describe('to heading 2', () => {
         it('should turn a heading 1 into a heading 2', async () => {
@@ -943,6 +1033,14 @@ describe('setTagName', () => {
                 contentBefore: '<div>[ab]</div>',
                 stepFunction: editor => editor.execCommand('setTag', 'h2'),
                 contentAfter: '<div><h2>[ab]</h2></div>',
+            });
+        });
+        it('should turn three table cells with paragraph to table cells with heading 2', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><p>[a</p></td><td><p>b</p></td><td><p>c]</p></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'h2'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><h2>[]a</h2></td><td><h2>b</h2></td><td><h2>c</h2></td></tr></tbody></table>',
             });
         });
     });
@@ -982,6 +1080,14 @@ describe('setTagName', () => {
                 contentAfter: '<div><h3>[ab]</h3></div>',
             });
         });
+        it('should turn three table cells with paragraph to table cells with heading 3', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><p>[a</p></td><td><p>b</p></td><td><p>c]</p></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'h3'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><h3>[]a</h3></td><td><h3>b</h3></td><td><h3>c</h3></td></tr></tbody></table>',
+            });
+        });
     });
     describe('to pre', () => {
         it('should turn a heading 1 into a pre', async () => {
@@ -1003,6 +1109,14 @@ describe('setTagName', () => {
                 contentBefore: '<h1>a[b</h1><pre>cd</pre><p>e]f</p>',
                 stepFunction: editor => editor.execCommand('setTag', 'pre'),
                 contentAfter: '<pre>a[b</pre><pre>cd</pre><pre>e]f</pre>',
+            });
+        });
+        it('should turn three table cells with paragraph to table cells with pre', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><p>[a</p></td><td><p>b</p></td><td><p>c]</p></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'pre'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><pre>[]a</pre></td><td><pre>b</pre></td><td><pre>c</pre></td></tr></tbody></table>',
             });
         });
     });
@@ -1041,6 +1155,14 @@ describe('setTagName', () => {
                 contentBefore: '<div>[ab]</div>',
                 stepFunction: editor => editor.execCommand('setTag', 'blockquote'),
                 contentAfter: '<div><blockquote>[ab]</blockquote></div>',
+            });
+        });
+        it('should turn three table cells with paragraph to table cells with blockquote', async () => {
+            await testEditor(BasicEditor, {
+                contentBefore: '<table><tbody><tr><td><p>[a</p></td><td><p>b</p></td><td><p>c]</p></td></tr></tbody></table>',
+                stepFunction: editor => editor.execCommand('setTag', 'blockquote'),
+                // The custom table selection is removed in cleanForSave and the selection is collapsed.
+                contentAfter: '<table><tbody><tr><td><blockquote>[]a</blockquote></td><td><blockquote>b</blockquote></td><td><blockquote>c</blockquote></td></tr></tbody></table>',
             });
         });
     });

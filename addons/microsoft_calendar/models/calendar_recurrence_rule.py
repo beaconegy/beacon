@@ -100,7 +100,8 @@ class RecurrenceRule(models.Model):
         vals['event_tz'] = microsoft_event.start.get('timeZone')
         super()._write_from_microsoft(microsoft_event, vals)
         new_event_values = self.env["calendar.event"]._microsoft_to_odoo_values(microsoft_event)
-        if self._has_base_event_time_fields_changed(new_event_values):
+        # Edge case:  if the base event was deleted manually in 'self_only' update, skip applying recurrence.
+        if self._has_base_event_time_fields_changed(new_event_values) and (new_event_values['start'] >= self.base_event_id.start):
             # we need to recreate the recurrence, time_fields were modified.
             base_event_id = self.base_event_id
             # We archive the old events to recompute the recurrence. These events are already deleted on Microsoft side.
@@ -138,7 +139,8 @@ class RecurrenceRule(models.Model):
         # older versions of the module. When synced, these recurrence may come back from Microsoft after database cleaning
         # and trigger errors as the records are not properly populated.
         # We also prevent sync of other user recurrent events.
-        return [('calendar_event_ids.user_id', '=', self.env.user.id), ('rrule', '!=', False)]
+        domain = [('calendar_event_ids.user_id', '=', self.env.user.id), ('rrule', '!=', False)]
+        return self._extend_microsoft_domain(domain)
 
     def _cancel_microsoft(self):
         self.calendar_event_ids._cancel_microsoft()

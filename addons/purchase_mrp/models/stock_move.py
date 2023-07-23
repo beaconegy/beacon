@@ -17,11 +17,12 @@ class StockMove(models.Model):
         return vals
 
     def _get_price_unit(self):
-        price_unit = super()._get_price_unit()
-        if self.product_id == self.purchase_line_id.product_id or not self.bom_line_id:
-            return price_unit
+        if self.product_id == self.purchase_line_id.product_id or not self.bom_line_id or self._should_ignore_pol_price():
+            return super()._get_price_unit()
+        line = self.purchase_line_id
+        kit_price_unit = line._get_gross_price_unit()
         cost_share = self.bom_line_id._get_cost_share()
-        return price_unit * cost_share
+        return kit_price_unit * cost_share
 
     def _get_valuation_price_and_qty(self, related_aml, to_curr):
         valuation_price_unit_total, valuation_total_qty = super()._get_valuation_price_and_qty(related_aml, to_curr)
@@ -38,9 +39,3 @@ class StockMove(models.Model):
             if float_is_zero(valuation_total_qty, precision_rounding=related_aml.product_uom_id.rounding or related_aml.product_id.uom_id.rounding):
                 raise UserError(_('Odoo is not able to generate the anglo saxon entries. The total valuation of %s is zero.') % related_aml.product_id.display_name)
         return valuation_price_unit_total, valuation_total_qty
-
-    def _get_mto_procurement_date(self):
-        date = super()._get_mto_procurement_date()
-        if 'buy' in self.product_id._get_rules_from_location(self.location_id).mapped('action'):
-            date -= relativedelta(days=self.company_id.po_lead)
-        return date

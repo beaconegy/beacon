@@ -7,6 +7,7 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
     const NumberBuffer = require('point_of_sale.NumberBuffer');
     const { useListener } = require("@web/core/utils/hooks");
     const { parse } = require('web.field_utils');
+    const { _lt } = require('@web/core/l10n/translation');
 
     const { onMounted, onWillUnmount, useState } = owl;
 
@@ -191,16 +192,16 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
         async _onDoRefund() {
             const order = this.getSelectedSyncedOrder();
 
+            if (!order) {
+                this._state.ui.highlightHeaderNote = !this._state.ui.highlightHeaderNote;
+                return;
+            }
+            
             if (this._doesOrderHaveSoleItem(order)) {
                 if (!this._prepareAutoRefundOnOrder(order)) {
                     // Don't proceed on refund if preparation returned false.
                     return;
                 }
-            }
-
-            if (!order) {
-                this._state.ui.highlightHeaderNote = !this._state.ui.highlightHeaderNote;
-                return;
             }
 
             const partner = order.get_partner();
@@ -215,7 +216,9 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
             // Use the destinationOrder from props if the order to refund has the same
             // partner as the destinationOrder.
             const destinationOrder =
-                this.props.destinationOrder && partner === this.props.destinationOrder.get_partner()
+                this.props.destinationOrder &&
+                partner === this.props.destinationOrder.get_partner() &&
+                !this.env.pos.doNotAllowRefundAndSales()
                     ? this.props.destinationOrder
                     : this._getEmptyOrder(partner);
 
@@ -423,7 +426,7 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
 
             const toRefundDetail = this._getToRefundDetail(orderline);
             const refundableQty = orderline.get_quantity() - orderline.refunded_qty;
-            if (this.env.pos.isProductQtyZero(refundableQty - 1)) {
+            if (this.env.pos.isProductQtyZero(refundableQty - 1) && toRefundDetail.qty === 0) {
                 toRefundDetail.qty = 1;
             }
             return true;
@@ -490,7 +493,7 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
             return {
                 quantity: -qty,
                 price: orderline.price,
-                extras: { price_manually_set: true },
+                extras: { price_automatically_set: true },
                 merge: false,
                 refunded_orderline_id: orderline.id,
                 tax_ids: orderline.tax_ids,
@@ -653,6 +656,8 @@ odoo.define('point_of_sale.TicketScreen', function (require) {
     };
 
     Registries.Component.add(TicketScreen);
+    TicketScreen.numpadActionName = _lt('Refund');
+    TicketScreen.searchPlaceholder = _lt('Search Orders...');
 
     return TicketScreen;
 });

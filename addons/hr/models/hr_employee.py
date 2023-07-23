@@ -120,6 +120,7 @@ class HrEmployeePrivate(models.Model):
     message_main_attachment_id = fields.Many2one(groups="hr.group_hr_user")
     id_card = fields.Binary(string="ID Card Copy", groups="hr.group_hr_user")
     driving_license = fields.Binary(string="Driving License", groups="hr.group_hr_user")
+    currency_id = fields.Many2one('res.currency', related='company_id.currency_id', readonly=True)
 
     _sql_constraints = [
         ('barcode_uniq', 'unique (barcode)', "The Badge ID must be unique, this one is already assigned to another employee."),
@@ -208,7 +209,7 @@ class HrEmployeePrivate(models.Model):
             responsible_user_id = employee.parent_id.user_id.id
             if responsible_user_id:
                 employees_scheduled |= employee
-                lang = self.env['res.partner'].browse(responsible_user_id).lang
+                lang = self.env['res.users'].browse(responsible_user_id).lang
                 formated_date = format_date(employee.env, employee.work_permit_expiration_date, date_format="dd MMMM y", lang_code=lang)
                 employee.activity_schedule(
                     'mail.mail_activity_data_todo',
@@ -338,6 +339,7 @@ class HrEmployeePrivate(models.Model):
         onboarding_notes_bodies = {}
         hr_root_menu = self.env.ref('hr.menu_hr_root')
         for employee in employees:
+            employee._message_subscribe(employee.address_home_id.ids)
             # Launch onboarding plans
             url = '/web#%s' % url_encode({
                 'action': 'hr.plan_wizard_action',
@@ -357,7 +359,10 @@ class HrEmployeePrivate(models.Model):
             account_id = vals.get('bank_account_id') or self.bank_account_id.id
             if account_id:
                 self.env['res.partner.bank'].browse(account_id).partner_id = vals['address_home_id']
-        if vals.get('user_id'):
+            self.message_unsubscribe(self.address_home_id.ids)
+            if vals['address_home_id']:
+                self._message_subscribe([vals['address_home_id']])
+        if 'user_id' in vals:
             # Update the profile pictures with user, except if provided 
             vals.update(self._sync_user(self.env['res.users'].browse(vals['user_id']),
                                         (bool(self.image_1920))))
@@ -491,12 +496,8 @@ class HrEmployeePrivate(models.Model):
 
     def _get_unusual_days(self, date_from, date_to=None):
         # Checking the calendar directly allows to not grey out the leaves taken
-        # by the employee
-        # Prevents a traceback when loading calendar views and no employee is linked to the user.
-        if not self:
-            return {}
-        self.ensure_one()
-        return self.resource_calendar_id._get_unusual_days(
+        # by the employee or fallback to the company calendar
+        return (self.resource_calendar_id or self.env.company.resource_calendar_id)._get_unusual_days(
             datetime.combine(fields.Date.from_string(date_from), time.min).replace(tzinfo=UTC),
             datetime.combine(fields.Date.from_string(date_to), time.max).replace(tzinfo=UTC)
         )

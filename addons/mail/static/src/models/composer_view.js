@@ -522,6 +522,7 @@ registerModel({
 
             const action = {
                 type: 'ir.actions.act_window',
+                name: this.composer.isLog ? this.env._t('Log note') : this.env._t('Compose Email'),
                 res_model: 'mail.compose.message',
                 view_mode: 'form',
                 views: [[false, 'form']],
@@ -598,7 +599,7 @@ registerModel({
                     threadView.update({ hasAutoScrollOnMessageReceived: true });
                     threadView.addComponentHint('message-posted', { message });
                 }
-                if (chatter && chatter.exists() && chatter.hasParentReloadOnMessagePosted) {
+                if (chatter && chatter.exists() && chatter.hasParentReloadOnMessagePosted && messageData.recipients.length) {
                     chatter.reloadParentView();
                 }
                 if (chatterThread) {
@@ -705,6 +706,7 @@ registerModel({
             let data = {
                 body: this._generateMessageBody(),
                 attachment_ids: composer.attachments.concat(this.messageViewInEditing.message.attachments).map(attachment => attachment.id),
+                attachment_tokens: composer.attachments.concat(this.messageViewInEditing.message.attachments).map(attachment => attachment.accessToken),
             };
             const messageViewInEditing = this.messageViewInEditing;
             await messageViewInEditing.message.updateContent(data);
@@ -850,6 +852,7 @@ registerModel({
         _getMessageData() {
             return {
                 attachment_ids: this.composer.attachments.map(attachment => attachment.id),
+                attachment_tokens: this.composer.attachments.map(attachment => attachment.accessToken),
                 body: this._generateMessageBody(),
                 message_type: 'comment',
                 partner_ids: this.composer.recipients.map(partner => partner.id),

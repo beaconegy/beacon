@@ -4,7 +4,7 @@
 import re
 from collections import defaultdict
 
-from odoo import models, fields, api, _, osv
+from odoo import models, fields, api, _, osv, Command
 from odoo.exceptions import ValidationError, UserError
 
 FIGURE_TYPE_SELECTION_VALUES = [
@@ -126,7 +126,7 @@ class AccountReport(models.Model):
             else:
                 report[field_name] = default_value
 
-    @api.depends('root_report_id', 'country_id')
+    @api.depends('root_report_id')
     def _compute_default_availability_condition(self):
         for report in self:
             if report.root_report_id:
@@ -139,6 +139,21 @@ class AccountReport(models.Model):
         for report in self:
             if report.root_report_id.root_report_id:
                 raise ValidationError(_("Only a report without a root report of its own can be selected as root report."))
+
+    @api.constrains('line_ids')
+    def _validate_parent_sequence(self):
+        previous_lines = self.env['account.report.line']
+        for line in self.line_ids:
+            if line.parent_id and line.parent_id not in previous_lines:
+                raise ValidationError(
+                    _('Line "%s" defines line "%s" as its parent, but appears before it in the report. '
+                      'The parent must always come first.', line.name, line.parent_id.name))
+            previous_lines |= line
+
+    @api.onchange('availability_condition')
+    def _onchange_availability_condition(self):
+        if self.availability_condition != 'country':
+            self.country_id = None
 
     def write(self, vals):
         # Overridden so that changing the country of a report also creates new tax tags if necessary, or updates the country
@@ -280,6 +295,11 @@ class AccountReportLine(models.Model):
                     expression.report_line_id.display_name,
                 ))
 
+    @api.constrains('parent_id')
+    def _check_parent_line(self):
+        for line in self.filtered(lambda x: x.parent_id == x):
+            raise ValidationError(_('Line "%s" defines itself as its parent.', line.name))
+
     def _copy_hierarchy(self, copied_report, parent=None, code_mapping=None):
         ''' Copy the whole hierarchy from this line by copying each line children recursively and adapting the
         formulas with the new copied codes.
@@ -293,7 +313,7 @@ class AccountReportLine(models.Model):
         copied_line = self.copy({
             'report_id': copied_report.id,
             'parent_id': parent and parent.id,
-            'code': self.code and self._get_copied_code(),
+            'code': self._get_copied_code(),
         })
 
         # Keep track of old_code -> new_code in a mutable dict
@@ -324,6 +344,8 @@ class AccountReportLine(models.Model):
         :return: an unique code for the copied account.report.line
         '''
         self.ensure_one()
+        if not self.code:
+            return False
         code = self.code + '_COPY'
         while self.search_count([('code', '=', code)]) > 0:
             code += '_COPY'
@@ -386,6 +408,16 @@ class AccountReportLine(models.Model):
 
         if vals_list:
             self.env['account.report.expression'].create(vals_list)
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_child_expressions(self):
+        """
+        We explicitly unlink child expressions.
+        This is necessary even if there is an ondelete='cascade' on it, because
+        the @api.ondelete method _unlink_archive_used_tags is not automatically
+        called if the parent model is deleted.
+        """
+        self.expression_ids.unlink()
 
 
 class AccountReportExpression(models.Model):
@@ -450,6 +482,13 @@ class AccountReportExpression(models.Model):
         if 'formula' in vals and isinstance(vals['formula'], str):
             vals['formula'] = re.sub(r'\s+', ' ', vals['formula'].strip())
 
+    def _create_tax_tags(self, tag_name, country):
+        existing_tags = self.env['account.account.tag']._get_tax_tags(tag_name, country.id)
+        if len(existing_tags) < 2:
+            # We can have only one tag in case we archived it and deleted its unused complement sign
+            tag_vals = self._get_tags_create_vals(tag_name, country.id, existing_tag=existing_tags)
+            self.env['account.account.tag'].create(tag_vals)
+
     @api.model_create_multi
     def create(self, vals_list):
         # Overridden so that we create the corresponding account.account.tag objects when instantiating an expression
@@ -463,19 +502,22 @@ class AccountReportExpression(models.Model):
             tag_name = expression.formula if expression.engine == 'tax_tags' else None
             if tag_name:
                 country = expression.report_line_id.report_id.country_id
-                existing_tags = self.env['account.account.tag']._get_tax_tags(tag_name, country.id)
-
-                if not existing_tags:
-                    tag_vals = self._get_tags_create_vals(tag_name, country.id)
-                    self.env['account.account.tag'].create(tag_vals)
+                self._create_tax_tags(tag_name, country)
 
         return result
 
     def write(self, vals):
-        if 'formula' not in vals:
-            return super().write(vals)
 
         self._strip_formula(vals)
+
+        if vals.get('engine') == 'tax_tags':
+            tag_name = vals.get('formula') or self.formula
+            country = self.report_line_id.report_id.country_id
+            self._create_tax_tags(tag_name, country)
+            return super().write(vals)
+
+        if 'formula' not in vals:
+            return super().write(vals)
 
         tax_tags_expressions = self.filtered(lambda x: x.engine == 'tax_tags')
         former_formulas_by_country = defaultdict(lambda: [])
@@ -502,6 +544,35 @@ class AccountReportExpression(models.Model):
                         self.env['account.account.tag'].create(tag_vals)
 
         return result
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_archive_used_tags(self):
+        """
+        Manages unlink or archive of tax_tags when account.report.expression are deleted.
+        If a tag is still in use on amls, we archive it.
+        """
+        expressions_tags = self._get_matching_tags()
+        tags_to_archive = self.env['account.account.tag']
+        tags_to_unlink = self.env['account.account.tag']
+        for tag in expressions_tags:
+            other_expression_using_tag = self.env['account.report.expression'].sudo().search([
+                ('engine', '=', 'tax_tags'),
+                ('formula', '=', tag.name[1:]),  # we escape the +/- sign
+                ('report_line_id.report_id.country_id.id', '=', tag.country_id.id),
+                ('id', 'not in', self.ids),
+            ], limit=1)
+            if not other_expression_using_tag:
+                aml_using_tag = self.env['account.move.line'].sudo().search([('tax_tag_ids', 'in', tag.id)], limit=1)
+                if aml_using_tag:
+                    tags_to_archive += tag
+                else:
+                    tags_to_unlink += tag
+
+        if tags_to_archive or tags_to_unlink:
+            rep_lines_with_tag = self.env['account.tax.repartition.line'].sudo().search([('tag_ids', 'in', (tags_to_archive + tags_to_unlink).ids)])
+            rep_lines_with_tag.write({'tag_ids': [Command.unlink(tag.id) for tag in tags_to_archive + tags_to_unlink]})
+            tags_to_archive.active = False
+            tags_to_unlink.unlink()
 
     def name_get(self):
         return [(expr.id, f'{expr.report_line_name} [{expr.label}]') for expr in self]
@@ -549,9 +620,14 @@ class AccountReportExpression(models.Model):
                     line_code, total_name = term.split('.')
                     totals_by_code[line_code].add(total_name)
 
+            if expression.subformula:
+                if_other_expr_match = re.match(r'if_other_expr_(above|below)\((?P<line_code>.+)[.](?P<expr_label>.+),.+\)', expression.subformula)
+                if if_other_expr_match:
+                    totals_by_code[if_other_expr_match['line_code']].add(if_other_expr_match['expr_label'])
+
         return totals_by_code
 
-    def _get_matching_tags(self):
+    def _get_matching_tags(self, sign=None):
         """ Returns all the signed account.account.tags records whose name matches any of the formulas of the tax_tags expressions contained in self.
         """
         tag_expressions = self.filtered(lambda x: x.engine == 'tax_tags')
@@ -561,12 +637,17 @@ class AccountReportExpression(models.Model):
         or_domains = []
         for tag_expression in tag_expressions:
             country = tag_expression.report_line_id.report_id.country_id
-            or_domains.append(self.env['account.account.tag']._get_tax_tags_domain(tag_expression.formula, country.id))
+            or_domains.append(self.env['account.account.tag']._get_tax_tags_domain(tag_expression.formula, country.id, sign))
 
-        return self.env['account.account.tag'].search(osv.expression.OR(or_domains))
+        return self.env['account.account.tag'].with_context(active_test=False).search(osv.expression.OR(or_domains))
 
     @api.model
-    def _get_tags_create_vals(self, tag_name, country_id):
+    def _get_tags_create_vals(self, tag_name, country_id, existing_tag=None):
+        """
+        We create the plus and minus tags with tag_name.
+        In case there is an existing_tag (which can happen if we deleted its unused complement sign)
+        we only recreate the missing sign.
+        """
         minus_tag_vals = {
           'name': '-' + tag_name,
           'applicability': 'taxes',
@@ -579,7 +660,12 @@ class AccountReportExpression(models.Model):
           'tax_negate': False,
           'country_id': country_id,
         }
-        return [(minus_tag_vals), (plus_tag_vals)]
+        res = []
+        if not existing_tag or not existing_tag.tax_negate:
+            res.append(minus_tag_vals)
+        if not existing_tag or existing_tag.tax_negate:
+            res.append(plus_tag_vals)
+        return res
 
     def _get_carryover_target_expression(self, options):
         self.ensure_one()

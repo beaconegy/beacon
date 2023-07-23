@@ -65,7 +65,7 @@ class PosPaymentMethod(models.Model):
 
     def _stripe_calculate_amount(self, amount):
         currency = self.journal_id.currency_id or self.company_id.currency_id
-        return int(amount/currency.rounding)
+        return round(amount/currency.rounding)
 
     def stripe_payment_intent(self, amount):
         if not self.env.user.has_group('point_of_sale.group_pos_user'):
@@ -110,7 +110,7 @@ class PosPaymentMethod(models.Model):
                 "amount_to_capture": self._stripe_calculate_amount(amount),
             }
 
-        return self._get_stripe_payment_provider()._stripe_make_request(endpoint, data)
+        return self.sudo()._get_stripe_payment_provider()._stripe_make_request(endpoint, data)
 
     def action_stripe_key(self):
         res_id = self._get_stripe_payment_provider().id

@@ -193,7 +193,7 @@
                                 <field name="mail_reminder_confirmed" invisible="1"/>
                                 <span class="text-muted" attrs="{'invisible': [('mail_reminder_confirmed', '=', False)]}">(confirmed by vendor)</span>
                             </div>
-                            <label for="receipt_reminder_email" class="d-none"/>
+                            <label for="receipt_reminder_email" class="d-none" groups="purchase.group_send_reminder"/>
                             <div name="reminder" class="o_row" groups='purchase.group_send_reminder' title="Automatically send a confirmation email to the vendor X days before the expected receipt date, asking him to confirm the exact date.">
                                 <field name="receipt_reminder_email"/>
                                 <span>Ask confirmation</span>
@@ -484,7 +484,7 @@
             <field name="name">purchase.order.kanban</field>
             <field name="model">purchase.order</field>
             <field name="arch" type="xml">
-                <kanban class="o_kanban_mobile" js_class="purchase_dashboard_kanban" sample="1">
+                <kanban class="o_kanban_mobile" js_class="purchase_dashboard_kanban" sample="1" quick_create="false">
                     <field name="name"/>
                     <field name="partner_id" readonly="1"/>
                     <field name="amount_total"/>
@@ -580,6 +580,7 @@
                     <field name="partner_id" readonly="1"/>
                     <field name="company_id" readonly="1" options="{'no_create': True}"
                         groups="base.group_multi_company" optional="show"/>
+                    <field name="company_id" groups="!base.group_multi_company" invisible="1"/>
                     <field name="date_planned" invisible="context.get('quotation_only', False)" optional="show"/>
                     <field name="user_id" optional="show" widget="many2one_avatar_user"/>
                     <field name="date_order" attrs="{'invisible': ['|', '|', ('state', '=', 'purchase'), ('state', '=', 'done'), ('state', '=', 'cancel')]}"
@@ -614,6 +615,7 @@
                     <field name="date_approve" widget="date" invisible="context.get('quotation_only', False)" optional="show"/>
                     <field name="partner_id"/>
                     <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}" optional="show"/>
+                    <field name="company_id" groups="!base.group_multi_company" invisible="1"/>
                     <field name="user_id" widget="many2one_avatar_user" optional="show"/>
                     <field name="date_order" invisible="not context.get('quotation_only', False)" optional="show"/>
                     <field name="activity_ids" widget="list_activity" optional="show"/>
